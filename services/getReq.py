@@ -181,10 +181,10 @@ branch = 'main'
     
 
 
-#print('branch protection', get_branch_protection(org, repo, branch))
+print('branch protection', get_branch_protection(org, repo, branch))
 
-#print('admin members are:', get_repo_admin_members(),'\n\n')
-#print('no mfa members are:', get_repo_no_mfa_members(),'\n\n')
+print('admin members are:', get_repo_admin_members(),'\n\n')
+print('no mfa members are:', get_repo_no_mfa_members(),'\n\n')
 
 #print('branch protection rules are:', get_branch_protection_rules())
 #print('branches are:', get_branches(org))
