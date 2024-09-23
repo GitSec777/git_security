@@ -42,6 +42,7 @@ def get_public_members():
 
 
 def filter_org_data(org_data):
+    print("org_data:",org_data)
     
     filtered_data = {
     "login": org_data.get("login"),
