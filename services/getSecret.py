@@ -1,5 +1,6 @@
 import json
 import os
+import secrets
 
 def get_secrets(key):
     my_path = os.path.abspath(os.path.dirname(__file__))
@@ -9,3 +10,6 @@ def get_secrets(key):
 
     return secrets[key]
 
+
+secret_key = secrets.token_hex(16)
+print(secret_key)

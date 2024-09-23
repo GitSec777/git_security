@@ -1,8 +1,7 @@
 import requests
-from getSecret import get_secrets
+from services.getSecret import get_secrets
 
-git_token = get_secrets("git_token")
-
+git_token = get_secrets("git_sec_token")
 
 
 # general http request function
@@ -40,7 +39,7 @@ def get_repo_members(org, token=git_token):
 def get_repo_no_mfa_members(org, token=git_token):
     url = f"https://api.github.com/orgs/{org}/members"
     my_headers = {'Authorization': 'Bearer ' + token }
-    my_params = {"filter": "2fa_disabled"}
+    my_params = {"filter": "2fa_disabled", "role": "all"}
     response = send_http_request(url, method="GET", headers=my_headers, params=my_params )
     #print(response)
     no_mfa_members = []
@@ -169,6 +168,15 @@ def get_dependabot_alerts(org, repo, token=git_token):
         return []
     
 
+# https://api.github.com/orgs/ORG/public_members
+def get_peublic_members(org,token=git_token):
+    url = f"https://api.github.com/orgs/{org}/public_members"
+    my_headers = {'Authorization': 'Bearer ' + token, "Accept": "application/vnd.github+json" }
+    response = send_http_request(url, method="GET", headers=my_headers)
+    if response:
+        return response
+    else:
+        return []
 
 
 
@@ -176,17 +184,17 @@ def get_dependabot_alerts(org, repo, token=git_token):
 # Example usage
 org = 'GitSec777'
 repo = 'git_security'
-branch = 'main'
+branch = 'fresh'
 
     
 
 
-print('branch protection', get_branch_protection(org, repo, branch))
+#print('branch protection', get_branch_protection(org, repo, branch))
 
-print('admin members are:', get_repo_admin_members(),'\n\n')
-print('no mfa members are:', get_repo_no_mfa_members(),'\n\n')
+#print('admin members are:', get_repo_admin_members(org),'\n\n')
+#print('no mfa members are:', get_repo_no_mfa_members(org),'\n\n')
 
-#print('branch protection rules are:', get_branch_protection_rules())
+#print('branch protection rules are:', get_branch_protection_rules(org, repo, branch))
 #print('branches are:', get_branches(org))
 #update_branch_protection('draft1')
 #print('remove branch protection:', remove_branch_protection('draft1', 'GitSec777', 'git_security', git_token))
@@ -194,4 +202,5 @@ print('no mfa members are:', get_repo_no_mfa_members(),'\n\n')
 
 #print('dependebot alerts are:', get_dependabot_alerts('GitSec777', 'git_security'))
 
+#print('public members are:', get_peublic_members('GitSec777'))
 
