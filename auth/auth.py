@@ -46,3 +46,21 @@ def get_github_token():
         return jsonify({'github_token': token})
     else:
         return jsonify({'error': 'No token found'}), 401
+
+@auth_bp.route('/get_user_data', methods=['GET'])
+def get_user_data():
+    github_token = session.get('github_token')
+    if not github_token:
+        return jsonify({'error': 'Not authenticated'}), 401
+
+    headers = {'Authorization': f'Bearer {github_token}'}
+    user_response = requests.get('https://api.github.com/user', headers=headers)
+
+    if user_response.status_code == 200:
+        user_data = user_response.json()
+        return jsonify({
+            'name': user_data.get('name') or user_data.get('login'),
+            'avatar_url': user_data.get('avatar_url')
+        })
+    else:
+        return jsonify({'error': 'Failed to fetch user data'}), user_response.status_code

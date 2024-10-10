@@ -1,6 +1,6 @@
 from flask import Blueprint, request, session, jsonify
 import requests
-from orgs.organization import filter_org_data
+from orgs.organization import get_filtered_org_data
 from repos.repository import get_repo_report
 
 def create_github_data_blueprint(cache):
@@ -47,6 +47,7 @@ def create_github_data_blueprint(cache):
     @github_data_bp.route('/api/github/data', methods=['GET'])
     @cache.cached(timeout=600, key_prefix="github_report")
     def get_github_data():
+        print("get_github_data called")
         access_token = session.get('github_token')
         org_name = request.args.get('org_name')
         repo_name = request.args.get('repo_name')
@@ -67,8 +68,10 @@ def create_github_data_blueprint(cache):
         # Filter the data based on whether it's an organization or repository
         if org_name:
             filtered_data = filter_org_data(response.json())
+            print("org filtered_data:", filtered_data)
         if repo_name:
             filtered_data = get_repo_report(response.json())
+            print("repo filtered_data:", filtered_data)
         
         return jsonify(filtered_data), response.status_code
 
