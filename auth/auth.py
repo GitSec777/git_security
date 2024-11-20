@@ -1,66 +1,75 @@
-from flask import Flask, Blueprint, request, redirect, session, jsonify
+# auth.py
+
+from flask import Blueprint, request, redirect, session, jsonify, url_for
 import requests
-import os
+from services.getSecret import get_secrets
 
 auth_bp = Blueprint('auth', __name__)
 
-CLIENT_ID = os.getenv('GITHUB_CLIENT_ID')
-CLIENT_SECRET = os.getenv('GITHUB_CLIENT_SECRET')
-FRONTEND_REDIRECT_URI = 'http://localhost:3000/selection' 
+CLIENT_ID = get_secrets('client_id')
+CLIENT_SECRET = get_secrets('app_secret')
+FRONTEND_URL = 'http://localhost:3000'
+FRONTEND_REDIRECT_URI = f'{FRONTEND_URL}/selection'
 
-
-@auth_bp.route('/auth/github/callback', methods=['GET', 'POST'])
-def github_callback():
-    print("GitHub callback route reached")  # Debugging line
+@auth_bp.route('/github/login', methods=['GET'])
+def github_login():
+    # Initialize GitHub OAuth flow
+    github_auth_url = "https://github.com/login/oauth/authorize"
+    redirect_uri = url_for('auth.github_callback', _external=True)
+    scope = "repo read:org"
     
+    # Directly redirect to GitHub's authorization page
+    return redirect(f"{github_auth_url}?client_id={CLIENT_ID}&redirect_uri={redirect_uri}&scope={scope}")
+
+@auth_bp.route('/github/callback', methods=['GET'])
+def github_callback():
     code = request.args.get('code')
     if not code:
-        return "Authorization failed: Missing code", 400
+        return redirect(f"{FRONTEND_URL}?error=authorization_failed")
 
+    # Exchange code for access token
     token_url = 'https://github.com/login/oauth/access_token'
     token_data = {
         'client_id': CLIENT_ID,
         'client_secret': CLIENT_SECRET,
         'code': code,
-        'redirect_uri': 'http://127.0.0.1:5000/auth/github/callback'
+        'redirect_uri': url_for('auth.github_callback', _external=True)
     }
     headers = {'Accept': 'application/json'}
     
     response = requests.post(token_url, data=token_data, headers=headers)
-    print("GitHub Response:", response.json())  # Log the GitHub response
-
+    
     token_json = response.json()
     access_token = token_json.get('access_token')
     if not access_token:
-        return "Failed to retrieve access token.", 400
+        return redirect(f"{FRONTEND_URL}?error=token_retrieval_failed")
 
+    # Store token in session
     session['github_token'] = access_token
-    return redirect(FRONTEND_REDIRECT_URI)
-
-@auth_bp.route('/get_github_token', methods=['GET'])
-def get_github_token():
-    print("Getting GitHub token")  # Debugging line
-    token = session.get('github_token')
-
-    if token:
-        return jsonify({'github_token': token})
-    else:
-        return jsonify({'error': 'No token found'}), 401
-
-@auth_bp.route('/get_user_data', methods=['GET'])
-def get_user_data():
-    github_token = session.get('github_token')
-    if not github_token:
-        return jsonify({'error': 'Not authenticated'}), 401
-
-    headers = {'Authorization': f'Bearer {github_token}'}
-    user_response = requests.get('https://api.github.com/user', headers=headers)
-
+    
+    # Get user information
+    user_response = requests.get(
+        'https://api.github.com/user',
+        headers={'Authorization': f'token {access_token}'}
+    )
+    
     if user_response.status_code == 200:
         user_data = user_response.json()
-        return jsonify({
-            'name': user_data.get('name') or user_data.get('login'),
-            'avatar_url': user_data.get('avatar_url')
-        })
-    else:
-        return jsonify({'error': 'Failed to fetch user data'}), user_response.status_code
+        session['user_name'] = user_data.get('name') or user_data.get('login')
+    
+    return redirect(FRONTEND_REDIRECT_URI)
+
+@auth_bp.route('/check-status', methods=['GET'])
+def check_status():
+    if 'github_token' not in session:
+        return jsonify({'isAuthenticated': False}), 401
+    
+    return jsonify({
+        'isAuthenticated': True,
+        'name': session.get('user_name', 'GitHub User')
+    })
+
+@auth_bp.route('/logout', methods=['GET'])
+def logout():
+    session.clear()
+    return jsonify({'message': 'Logged out successfully'})
