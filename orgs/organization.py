@@ -2,8 +2,8 @@
 
 from flask import Blueprint, request, jsonify, session
 from services.getReq import (
-    get_repo_members,
-    get_repo_no_mfa_members,
+    get_org_members,
+    get_org_no_mfa_members,
     get_repo_admin_members,
     get_repos,
     get_public_members,
@@ -19,7 +19,7 @@ def get_org_members():
     token = session.get('github_token')  # Retrieve token from session
     if not token:
         return jsonify({'error': 'Unauthorized'}), 401
-    response = get_repo_members(org, token)
+    response = get_org_members(org, token)
     return jsonify(response)
 
 @org_bp.route('/org/members/no_mfa', methods=['GET'])
@@ -28,7 +28,7 @@ def get_org_no_mfa_members_route():
     token = session.get('github_token')  # Retrieve token from session
     if not token:
         return jsonify({'error': 'Unauthorized'}), 401
-    response = get_repo_no_mfa_members(org, token)
+    response = get_org_no_mfa_members(org, token)
     return jsonify(response)
 
 @org_bp.route('/org/members/admin', methods=['GET'])

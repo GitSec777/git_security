@@ -13,7 +13,7 @@ def send_http_request(url, method="GET", data=None, headers=None, params=None):
 
 # Organization methods
 
-def get_repo_members(org, token):
+def get_org_members(org, token):
     url = f"https://api.github.com/orgs/{org}/members"
     headers = {'Authorization': f'Bearer {token}'}
     response = send_http_request(url, method="GET", headers=headers)
@@ -25,7 +25,7 @@ def get_repo_members(org, token):
         return members
     return []
 
-def get_repo_no_mfa_members(org, token):
+def get_org_no_mfa_members(org, token):
     url = f"https://api.github.com/orgs/{org}/members"
     headers = {
         'Authorization': f'Bearer {token}',
@@ -140,7 +140,7 @@ def get_filtered_org_data(org_name, token):
     repos_data = repos_response
 
     # Get no MFA members and admin members
-    no_mfa_members = get_repo_no_mfa_members(org_name, token)
+    no_mfa_members = get_org_no_mfa_members(org_name, token)
     admin_members = get_repo_admin_members(org_name, token)
     
     # Create the filtered data
@@ -171,3 +171,139 @@ def get_filtered_org_data(org_name, token):
     }
 
     return filtered_data
+
+def get_org_dependebot_alerts(org, token):
+    """Get filtered dependency alerts for the organization"""
+    headers = {
+        'Authorization': f'Bearer {token}',
+        'Accept': 'application/vnd.github.hawkgirl-preview+json'
+    }
+    
+    url = f"https://api.github.com/orgs/{org}/dependabot/alerts"
+    try:
+        response = requests.get(url, headers=headers)
+        if response.status_code == 200:
+            alerts = response.json()
+            # Filter and transform the data
+            filtered_alerts = []
+            for alert in alerts:
+                filtered_alert = {
+                    'package_name': alert['dependency']['package']['name'],
+                    'ecosystem': alert['dependency']['package']['ecosystem'],
+                    'severity': alert['security_vulnerability']['severity'],
+                    'vulnerable_version': alert['security_vulnerability']['vulnerable_version_range'],
+                    'patched_version': alert['security_vulnerability']['first_patched_version']['identifier'],
+                    'summary': alert['security_advisory']['summary'],
+                    'created_at': alert['created_at'],
+                    'state': alert['state'],
+                    'repository': alert['repository']['name']
+                }
+                filtered_alerts.append(filtered_alert)
+            
+            # Sort by severity (high to low) and then by creation date
+            severity_order = {'critical': 0, 'high': 1, 'medium': 2, 'low': 3}
+            filtered_alerts.sort(
+                key=lambda x: (
+                    severity_order.get(x['severity'].lower(), 4),
+                    x['created_at']
+                )
+            )
+            
+            return filtered_alerts
+        return None
+    except requests.exceptions.RequestException:
+        return None
+
+def get_org_security_advisories(org, token):
+    """Get security advisories for the organization"""
+    headers = {
+        'Authorization': f'Bearer {token}',
+        'Accept': 'application/vnd.github.v3+json'
+    }
+    
+    url = f"https://api.github.com/orgs/{org}/security-advisories"
+    try:
+        response = requests.get(url, headers=headers)
+        if response.status_code == 200:
+            return response.json()
+        return None
+    except requests.exceptions.RequestException:
+        return None
+
+
+def get_repo_code_scanning_alerts(org, repo, token):
+    url = f"https://api.github.com/repos/{org}/{repo}/code-scanning/alerts"
+    headers = {
+        'Authorization': f'Bearer {token}',
+        'Accept': 'application/vnd.github.v3+json'
+    }
+    try:
+        response = send_http_request(url, method="GET", headers=headers)
+        if response:
+            return response.json()
+        return None
+    except requests.exceptions.RequestException:
+        return None
+
+def get_repo_secret_scanning_alerts(org, repo, token):
+    url = f"https://api.github.com/repos/{org}/{repo}/secret-scanning/alerts"
+    headers = {
+        'Authorization': f'Bearer {token}',
+        'Accept': 'application/vnd.github.v3+json'
+    }
+    try:
+        response = requests.get(url, headers=headers)
+        if response.status_code == 404:
+            return {"error": "not_configured"}
+        elif response.status_code == 200:
+            return response.json()
+        return None
+    except requests.exceptions.RequestException:
+        return None
+    
+def get_repo_vul_alerts(org, repo, token):
+    url = f"https://api.github.com/repos/{org}/{repo}/vulnerability-alerts"
+    headers = {
+        'Authorization': f'Bearer {token}',
+        'Accept': 'application/vnd.github.v3+json'
+    }    
+    try:
+        response = send_http_request(url, method="GET", headers=headers)
+        if response:
+            return response.json()
+        return None
+    except requests.exceptions.RequestException:
+        return None
+
+
+
+
+
+
+
+def get_org_repo_creation_settings(org, token):
+    """Get repository creation settings for the organization"""
+    headers = {
+        'Authorization': f'Bearer {token}',
+        'Accept': 'application/vnd.github.v3+json'
+    }
+    
+    url = f"https://api.github.com/orgs/{org}"
+    try:
+        response = requests.get(url, headers=headers)
+        if response.status_code == 200:
+            data = response.json()
+            return {
+                'members_can_create_repos': data.get('members_can_create_repositories', False),
+                'members_can_create_public_repos': data.get('members_can_create_public_repositories', False),
+                'members_can_create_private_repos': data.get('members_can_create_private_repositories', False),
+                'members_can_create_internal_repos': data.get('members_can_create_internal_repositories', False),
+                'members_allowed_repository_creation_type': data.get('members_allowed_repository_creation_type', 'none'),
+                'members_can_fork_private_repos': data.get('members_can_fork_private_repositories', False),
+                'default_repo_permission': data.get('default_repository_permission', 'read')
+            }
+        return None
+    except requests.exceptions.RequestException:
+        return None
+
+

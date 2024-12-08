@@ -41,6 +41,7 @@ def github_callback():
     
     token_json = response.json()
     access_token = token_json.get('access_token')
+    print("access token", access_token)
     if not access_token:
         return redirect(f"{FRONTEND_URL}?error=token_retrieval_failed")
 

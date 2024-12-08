@@ -1,7 +1,7 @@
 import os
 from flask import Blueprint, request, jsonify
 from utils.http_helper import send_http_request
-from services.getReq import get_repo_members, get_repo_no_mfa_members, get_repo_admin_members, get_repos, get_dependabot_alerts
+from services.getReq import get_org_members, get_org_no_mfa_members, get_repo_admin_members, get_repos, get_dependabot_alerts
 
 repo_bp = Blueprint('repo', __name__)
 git_token = os.getenv('GITHUB_TOKEN')
