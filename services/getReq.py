@@ -198,6 +198,7 @@ def get_org_dependebot_alerts(org, token):
                     'state': alert['state'],
                     'repository': alert['repository']['name']
                 }
+                print('filtered alert🌟', filtered_alert)
                 filtered_alerts.append(filtered_alert)
             
             # Sort by severity (high to low) and then by creation date
@@ -238,12 +239,22 @@ def get_repo_code_scanning_alerts(org, repo, token):
         'Accept': 'application/vnd.github.v3+json'
     }
     try:
-        response = send_http_request(url, method="GET", headers=headers)
-        if response:
+        response = requests.get(url, headers=headers)
+        if response is None:
+            return {"error": "no_response"}
+            
+        print('code scanning response🌟', response.status_code)
+        
+        if response.status_code in [404, 400]:
+            return {"error": "not_configured"}
+        elif response.status_code == 200:
+            print('code scanning response🌟', response.json())
             return response.json()
-        return None
-    except requests.exceptions.RequestException:
-        return None
+        return {"error": f"status_code_{response.status_code}"}
+        
+    except requests.exceptions.RequestException as e:
+        print("Error in code scanning:", str(e))
+        return {"error": "request_failed"}
 
 def get_repo_secret_scanning_alerts(org, repo, token):
     url = f"https://api.github.com/repos/{org}/{repo}/secret-scanning/alerts"
@@ -268,12 +279,22 @@ def get_repo_vul_alerts(org, repo, token):
         'Accept': 'application/vnd.github.v3+json'
     }    
     try:
-        response = send_http_request(url, method="GET", headers=headers)
-        if response:
-            return response.json()
-        return None
-    except requests.exceptions.RequestException:
-        return None
+        response = requests.get(url, headers=headers)
+        if response is None:
+            return {"error": "no_response"}
+            
+        print('vulnerability response status:', response.status_code)
+        
+        if response.status_code == 404:
+            return {"error": "not_configured"}
+        elif response.status_code == 204:
+            return {"status": "enabled", "message": "Vulnerability alerts are enabled"}
+        
+        return {"error": f"status_code_{response.status_code}"}
+        
+    except requests.exceptions.RequestException as e:
+        print("Error in vulnerability alerts:", str(e))
+        return {"error": "request_failed"}
 
 
 
