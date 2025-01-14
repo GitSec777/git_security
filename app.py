@@ -8,15 +8,18 @@ from routes.repo_routes import repo_routes
 from flask_cors import CORS
 from flask_caching import Cache
 import os
+from services.getSecret import secret_key
 
 app = Flask(__name__)
+app.secret_key = secret_key
 
 # Simple CORS configuration since we're using axios
 CORS(app, 
-     origins=["http://localhost:3000"],
-     supports_credentials=True)
+     origins=["http://127.0.0.1:3000", "http://127.0.0.1:5050"],
+     supports_credentials=True,
+     expose_headers=["Set-Cookie"])
 
-app.secret_key = os.getenv('SECRET_KEY')
+
 
 # Initialize cache with the main app
 cache = Cache(app)
@@ -26,8 +29,8 @@ github_data_bp = create_github_data_blueprint(cache)
 
 # Session configuration
 app.config.update(
-    SESSION_COOKIE_SAMESITE='None',
-    SESSION_COOKIE_SECURE=True,
+    SESSION_COOKIE_SAMESITE='Lax',
+    SESSION_COOKIE_SECURE=False,
     SESSION_COOKIE_HTTPONLY=True
 )
 

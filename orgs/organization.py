@@ -26,6 +26,7 @@ def get_org_members():
 def get_org_no_mfa_members_route():
     org = request.args.get('org')
     token = session.get('github_token')  # Retrieve token from session
+    print("token:", token)
     if not token:
         return jsonify({'error': 'Unauthorized'}), 401
     response = get_org_no_mfa_members(org, token)

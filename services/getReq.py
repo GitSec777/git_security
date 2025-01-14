@@ -264,6 +264,7 @@ def get_repo_secret_scanning_alerts(org, repo, token):
     }
     try:
         response = requests.get(url, headers=headers)
+        print('org', org, 'repo', repo, 'secret scanning response🌟', response.json())
         if response.status_code == 404:
             return {"error": "not_configured"}
         elif response.status_code == 200:

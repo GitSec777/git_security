@@ -14,6 +14,7 @@ org_routes = Blueprint('org_routes', __name__)
 @org_routes.route('/api/org/<org>/no-mfa-members', methods=['GET'])
 def no_mfa_members(org):
     if 'github_token' not in session:
+        print("No github_token in session")
         return jsonify({'error': 'Not authenticated'}), 401
     
     token = session['github_token']
