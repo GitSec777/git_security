@@ -3,6 +3,9 @@ import os
 import secrets
 
 def get_secrets(key):
+    if os.environ.get('FLASK_ENV') == 'production':
+        return os.environ.get(key)
+    
     my_path = os.path.abspath(os.path.dirname(__file__))
     path = os.path.join(my_path, "../secrets/secret.json")
     print(f"Attempting to read secrets from: {path}")  # Debug print
