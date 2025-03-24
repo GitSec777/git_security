@@ -1,4 +1,5 @@
 from flask import Flask, request, jsonify, make_response
+from config.logging_config import setup_logger
 from auth.auth import auth_bp
 from github_data.github_data import create_github_data_blueprint
 from orgs.organization import org_bp
@@ -9,6 +10,9 @@ from flask_cors import CORS
 from flask_caching import Cache
 import os
 from services.getSecret import get_secrets
+
+
+logger = setup_logger()
 
 app = Flask(__name__)
 app.secret_key = get_secrets('FLASK_SECRET_KEY')
@@ -63,17 +67,23 @@ app.register_blueprint(repo_routes)
 
 
 # Add health check endpoint for AWS
+@app.before_request
+def log_request():
+    logger.info(f"Request received: {request.method} {request.path}")
+    logger.info(f"Headers: {dict(request.headers)}")
+
 @app.route('/api/health')
 def health_check():
-    app.logger.info("Health check endpoint called")
+    logger.info("Health check endpoint called")
     try:
         response = make_response("OK")
         response.headers.add('Access-Control-Allow-Origin', '*')
+        logger.info("Health check responding with OK")
         return response, 200
     except Exception as e:
-        app.logger.error("Health check error: %s", str(e))
+        logger.error(f"Health check error: {str(e)}")
         return jsonify({'status': 'error', 'message': str(e)}), 500
-
-
+    
+    
 if __name__ == '__main__':
     app.run(debug=True)
