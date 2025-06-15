@@ -1,1 +1,28 @@
-/secrets
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual Environment
+venv/
+env/
+ENV/
+
+# Environment variables
+.env
+.env.*
+
+# IDE
+.vscode/
+.idea/
+
+# macOS
+.DS_Store
+
+# Project specific
+secrets/
+data/
+models/
+
+# Docker
+.dockerignore
