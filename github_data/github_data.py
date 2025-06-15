@@ -5,7 +5,6 @@ import requests
 from orgs.organization import get_filtered_org_data
 from repos.repository import get_repo_report
 
-# Create blueprint with a descriptive name
 github_data_bp = Blueprint('github_data', __name__)
 
 def get_github_headers(token):
