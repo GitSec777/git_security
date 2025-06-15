@@ -7,7 +7,7 @@ on:
 
 env:
   AWS_REGION: eu-west-1
-  ECR_REPOSITORY: gitsec-backend
+  ECR_REPOSITORY: gitsec/backend
 
 jobs:
   build-and-push:
