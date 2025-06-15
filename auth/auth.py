@@ -8,7 +8,7 @@ auth_bp = Blueprint('auth', __name__)
 
 CLIENT_ID = get_secrets('client_id')
 CLIENT_SECRET = get_secrets('app_secret')
-FRONTEND_URL = 'http://127.0.0.1:3000'
+FRONTEND_URL = 'http://localhost:3000'
 FRONTEND_REDIRECT_URI = f'{FRONTEND_URL}/selection'
 
 @auth_bp.route('/github/login', methods=['GET', 'POST'])
@@ -16,6 +16,7 @@ def github_login():
     # Initialize GitHub OAuth flow
     github_auth_url = "https://github.com/login/oauth/authorize"
     redirect_uri = url_for('auth.github_callback', _external=True)
+    print(f"Generated redirect_uri: {redirect_uri}")
     scope = "repo read:org"
     
     # Directly redirect to GitHub's authorization page
@@ -25,10 +26,14 @@ def github_login():
 def github_callback():
     try:
         code = request.args.get('code')
-        print(f"Received code: {code}")
+        error = request.args.get('error')
+        
+        if error:
+            return redirect(f"{FRONTEND_URL}/error?code={error}&message=Github+authorization+failed.+Please+try+again.")
+
         if not code:
             print("No code received")  # Debug print
-            return redirect(f"{FRONTEND_URL}?error=authorization_failed")
+            return redirect(f"{FRONTEND_URL}/error?code=authorization_failed&message=No+code+received")
         # Print the values we're using
         print(f"CLIENT_SECRET length: {len(CLIENT_SECRET) if CLIENT_SECRET else 'None'}")
         print(f"FRONTEND_URL: {FRONTEND_URL}")
@@ -41,21 +46,20 @@ def github_callback():
             'code': code,
             'redirect_uri': url_for('auth.github_callback', _external=True)
         }
-        print(f"Token request data: {token_data}")  # Debug print
-
         headers = {'Accept': 'application/json'}
         
         try:
             response = requests.post(token_url, data=token_data, headers=headers)
-            print(f"GitHub response status: {response.status_code}")  # Debug print
-            print(f"GitHub response: {response.text}")  # Debug print
         except Exception as e:
             print(f"Error in token request: {str(e)}")  # Debug print
-            return jsonify({'error': str(e)}), 500
+            redirect(f"{FRONTEND_URL}/error?code=connection_error&message=Failed+to+connect+to+GitHub")
 
-        
         token_json = response.json()
-        print(f"Token response: {token_json}")  # Debug print
+
+        if 'error' in token_json:
+            error_msg = token_json.get('error_description', token_json.get('error', 'Unknown error'))
+            return redirect(f"{FRONTEND_URL}/error?code={token_json.get('error')}&message={error_msg}")
+            
         access_token = token_json.get('access_token')
         print("access token", access_token)
         if not access_token:
@@ -72,13 +76,14 @@ def github_callback():
             'https://api.github.com/user',
             headers={'Authorization': f'token {access_token}'}
         )
-        print(f"User response status: {user_response.status_code}")  # Debug print
-        print(f"User response: {user_response.text}")  # Debug print
         
         if user_response.status_code == 200:
             user_data = user_response.json()
+            print("user data:", user_data)
             session['user_name'] = user_data.get('name') or user_data.get('login')
-        
+        else:
+            # Continue anyway, we at least have the token
+            print("Warning: Could not fetch user information")
         return redirect(FRONTEND_REDIRECT_URI)
 
     except Exception as e:
@@ -86,10 +91,11 @@ def github_callback():
         print(f"Error in callback: {str(e)}")
         print("Full traceback:")
         print(traceback.format_exc())
-        return jsonify({'error': str(e)}), 500
+        return redirect(f"{FRONTEND_URL}/error?code=server_error&message={str(e)}")
 
 @auth_bp.route('/check-status', methods=['GET'])
 def check_status():
+    print("check status is happening now")
     if 'github_token' not in session:
         return jsonify({'isAuthenticated': False}), 401
     

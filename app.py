@@ -19,8 +19,8 @@ app.secret_key = get_secrets('FLASK_SECRET_KEY')
 
 # Define allowed origins based on environment
 ALLOWED_ORIGINS = [
-    "http://127.0.0.1:3000",  # Development React
-    "http://127.0.0.1:5050",  # Development Flask
+    "http://localhost:3000",  # Development React
+    "http://localhost:5050",  # Development Flask
 ]
 
 # Add production ALB origin if in production
@@ -86,4 +86,4 @@ def health_check():
     
     
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run(debug=True, host='0.0.0.0', port=5050)
